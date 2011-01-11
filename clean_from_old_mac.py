@@ -23,6 +23,9 @@
 # @copyright 2011 Marco Antonio Islas Cruz
 # @license   http://www.gnu.org/licenses/gpl.txt
 
+
+#TODO: print something about sockets
+
 import os
 import sys
 import shutil
@@ -79,7 +82,6 @@ if cont.lower() != "y":
 while entries:
     entry = entries.pop()
     if "(from old Mac)" in entry:
-        print entry
         if os.path.isfile( entry ) or os.path.islink( entry ):
             if options.debug:
                 print "delete file", entry
