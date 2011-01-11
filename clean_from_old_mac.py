@@ -90,8 +90,12 @@ while entries:
             if options.debug:
                 print "rm dir", entry
             func = shutil.rmtree
+            #As rmtree will delete everything from this directory, we will
+            #skip the files that contains this directory on its name.
+            entries = [k for k in entries if k.startwith(entry)]
         else:
             print "Unknown type for '%s' didn't touch it."%entry
+            continue
         try:
             func(entry)
         except Exception, e:
