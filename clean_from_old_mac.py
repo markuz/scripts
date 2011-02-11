@@ -81,24 +81,25 @@ if cont.lower() != "y":
 
 while entries:
     entry = entries.pop()
-    if "(from old Mac)" in entry:
-        if os.path.isfile( entry ) or os.path.islink( entry ):
-            if options.debug:
-                print "delete file", entry
-            func = os.remove
-        elif os.path.isdir( entry ):
-            if options.debug:
-                print "rm dir", entry
-            func = shutil.rmtree
-            #As rmtree will delete everything from this directory, we will
-            #skip the files that contains this directory on its name.
-            entries = [k for k in entries if k.startwith(entry)]
-        else:
-            print "Unknown type for '%s' didn't touch it."%entry
-            continue
-        try:
-            func(entry)
-        except Exception, e:
-            sys.stderr.write(e)
-            sys.stderr.flush()
+    if not "(from old Mac)" in entry:
+        continue
+    if os.path.isfile( entry ) or os.path.islink( entry ):
+        if options.debug:
+            print "delete file", entry
+        func = os.remove
+    elif os.path.isdir( entry ):
+        if options.debug:
+            print "rm dir", entry
+        func = shutil.rmtree
+        #As rmtree will delete everything from this directory, we will
+        #skip the files that contains this directory on its name.
+        entries = [k for k in entries if k.startwith(entry)]
+    else:
+        print "Unknown type for '%s' didn't touch it."%entry
+        continue
+    try:
+        func(entry)
+    except Exception, e:
+        sys.stderr.write(e)
+        sys.stderr.flush()
 
