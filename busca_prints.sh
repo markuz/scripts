@@ -1,0 +1,97 @@
+#!/bin/bash
+# This file is part of the Christine project
+#
+# Copyright (c) 2006-2009 Marco Antonio Islas Cruz
+#
+# Christine is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# Christine is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
+#
+# @category  Multimedia
+# @package   Christine
+# @author    Marco Antonio Islas Cruz <markuz@islascruz.org>
+# @author    Miguel Vazquez Gocobachi <demrit@gnu.org>
+# @copyright 2006-2007 Christine Development Group
+# @license   http://www.gnu.org/licenses/gpl.tx
+
+EXCLUDE=""
+EXCLUDEDIR=""
+DEBUG=""
+#By default, look on python scripts
+STRINGS=""
+EXT="py"
+#args=`getopt de:E: "$@"`
+#set $args
+while getopts "de:E:x:" OPTION
+do
+    case $OPTION in
+        e) EXCLUDE="$EXCLUDE $OPTARG";;
+        E) EXCLUDEDIR="$EXCLUDEDIR $OPTARG";;
+        d) DEBUG="yes";;
+        x) EXT="$EXT $OPTARG";;
+        *) STRINGS="$STRINGS $OPTARG";;
+    esac
+done
+shift `expr $OPTIND - 1`
+
+
+if [ "x$EXT" == "xnone" ]; then
+    EXT='';
+fi
+
+if [ "xDEBUG" != "x" ]; then
+    echo "Exclude: $EXCLUDE";
+    echo "Excludedir: $EXCLUDEDIR";
+    echo "Debug: $DEBUG";
+    echo "STRINGS : $@";
+fi
+
+for i in `find -L . -iname "*$EXT" 2> /dev/null`; do 
+	E=`grep "$1" $i 2> /dev/null`; 
+    for item in $EXCLUDE; do
+        if [ "x$i" == "x$item" ]; then
+            if [ "x!DEBUG" != "x" ]; then
+                echo "Excluding $i";
+            fi
+            continue
+        fi
+    done
+    for item in $EXCLUDEDIR; do
+        result=`echo $i |grep -e "\./$item"`
+        if [ "x$result" != "x" ]; then
+            if [ "x$DEBUG" != "x" ]; then
+                echo "Excluding $i";
+            fi
+            exclude=yes
+        fi
+    done
+    if [ "x$exclude" != "x" ]; then
+        continue
+    fi
+	if [ "x$E" == "x" ]; then 
+        continue
+    fi
+    ISSVN=`echo $i |grep -e ".*.svn*"`
+    if [ "x$ISSVN" != "x" ]; then
+        continue
+    fi
+    for query in "$@"; do
+        MATCH=`grep -n -w "$query" $i`
+        if [ "x$MATCH" == "x" ]; then 
+            continue
+        fi
+        echo ====$i:$query====; 
+        python -c "import sys; map(lambda x: sys.stdout.write(x), sys.argv[1])" "$MATCH"
+        python -c print ""
+    done
+done
