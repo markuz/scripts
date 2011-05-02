@@ -49,7 +49,7 @@ if [ "x$EXT" == "xnone" ]; then
     EXT='';
 fi
 
-if [ "xDEBUG" != "x" ]; then
+if [ "x$DEBUG" != "x" ]; then
     echo "Exclude: $EXCLUDE";
     echo "Excludedir: $EXCLUDEDIR";
     echo "Debug: $DEBUG";
