@@ -1,14 +1,14 @@
 #!/bin/bash
 # This file is part of the Christine project
 #
-# Copyright (c) 2006-2009 Marco Antonio Islas Cruz
+# Copyright (c) 2011 Marco Antonio Islas Cruz
 #
-# Christine is free software; you can redistribute it and/or modify
+# This script is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; either version 2 of the License, or
 # (at your option) any later version.
 #
-# Christine is distributed in the hope that it will be useful,
+# This script is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
@@ -17,11 +17,8 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
 #
-# @category  Multimedia
-# @package   Christine
 # @author    Marco Antonio Islas Cruz <markuz@islascruz.org>
-# @author    Miguel Vazquez Gocobachi <demrit@gnu.org>
-# @copyright 2006-2007 Christine Development Group
+# @copyright 2011 Marco Antonio Islas Cruz
 # @license   http://www.gnu.org/licenses/gpl.tx
 
 EXCLUDE=""
