@@ -29,6 +29,18 @@ STRINGS=""
 EXT="py"
 #args=`getopt de:E: "$@"`
 #set $args
+
+function usage(){
+    echo "busca_print.sh [eEdxh] query"
+    echo ""
+    echo "-e <files>\t\tFiles to be excluded"
+    echo "-E <dirs>\t\tDirectories to be excluded"
+    echo "-d \t\tDebug"
+    echo "-x \t\tLook only for this extension(s)"
+    echo "-h \t\tShow this help"
+}
+
+
 while getopts "de:E:x:" OPTION
 do
     case $OPTION in
@@ -36,11 +48,16 @@ do
         E) EXCLUDEDIR="$EXCLUDEDIR $OPTARG";;
         d) DEBUG="yes";;
         x) EXT="$EXT $OPTARG";;
+        h) HELP="yes";;
         *) STRINGS="$STRINGS $OPTARG";;
     esac
 done
 shift `expr $OPTIND - 1`
 
+if [ "x$HELP" != "x" ]; then 
+    usage;
+    exit 0
+fi
 
 if [ "x$EXT" == "xnone" ]; then
     EXT='';
