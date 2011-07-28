@@ -26,7 +26,7 @@ EXCLUDEDIR=""
 DEBUG=""
 #By default, look on python scripts
 STRINGS=""
-EXT="py"
+EXT=""
 #args=`getopt de:E: "$@"`
 #set $args
 
@@ -41,13 +41,13 @@ function usage(){
 }
 
 
-while getopts "de:E:x:" OPTION
+while getopts "de:E:x:h" OPTION
 do
     case $OPTION in
         e) EXCLUDE="$EXCLUDE $OPTARG";;
         E) EXCLUDEDIR="$EXCLUDEDIR $OPTARG";;
         d) DEBUG="yes";;
-        x) EXT="$EXT $OPTARG";;
+        x) EXT="$EXT *$OPTARG";;
         h) HELP="yes";;
         *) STRINGS="$STRINGS $OPTARG";;
     esac
@@ -59,53 +59,64 @@ if [ "x$HELP" != "x" ]; then
     exit 0
 fi
 
-if [ "x$EXT" == "xnone" ]; then
-    EXT='';
+if [ "x$EXT" == "x" ]; then
+    EXT='*py';
 fi
 
-if [ "x$DEBUG" != "x" ]; then
-    echo "Exclude: $EXCLUDE";
-    echo "Excludedir: $EXCLUDEDIR";
-    echo "Debug: $DEBUG";
-    echo "STRINGS : $@";
+if [ "x$EXT" == "x *none" ]; then
+    EXT='*';
 fi
 
-for i in `find -L . -iname "*$EXT" 2> /dev/null`; do 
-	E=`grep "$1" $i 2> /dev/null`; 
-    for item in $EXCLUDE; do
-        if [ "x$i" == "x$item" ]; then
-            if [ "x!DEBUG" != "x" ]; then
-                echo "Excluding $i";
+
+function debug
+{
+    if [ "x$DEBUG" != "x" ]; then
+        echo $*;
+    fi
+}
+
+debug "Exclude: $EXCLUDE" ;
+debug "Excludedir: $EXCLUDEDIR" ;
+debug "Debug: $DEBUG";
+debug "STRINGS : $@";
+debug "EXT: $EXT";
+
+for e in "$EXT"; do 
+    newname=${e//[[:space:]]};
+    debug "New name : $newname"
+    for i in `find -L . -iname "$newname" 2> /dev/null`; do 
+        E=`grep "$1" $i 2> /dev/null`; 
+        for item in $EXCLUDE; do
+            if [ "x$i" == "x$item" ]; then
+                debug "Excluding $i";
+                continue
             fi
+        done
+        for item in $EXCLUDEDIR; do
+            result=`echo $i |grep -e "\./$item"`
+            if [ "x$result" != "x" ]; then
+                debug "Excluding $i";
+                exclude=yes
+            fi
+        done
+        if [ "x$exclude" != "x" ]; then
             continue
         fi
-    done
-    for item in $EXCLUDEDIR; do
-        result=`echo $i |grep -e "\./$item"`
-        if [ "x$result" != "x" ]; then
-            if [ "x$DEBUG" != "x" ]; then
-                echo "Excluding $i";
-            fi
-            exclude=yes
-        fi
-    done
-    if [ "x$exclude" != "x" ]; then
-        continue
-    fi
-	if [ "x$E" == "x" ]; then 
-        continue
-    fi
-    ISSVN=`echo $i |grep -e ".*.svn*"`
-    if [ "x$ISSVN" != "x" ]; then
-        continue
-    fi
-    for query in "$@"; do
-        MATCH=`grep -n -w "$query" $i`
-        if [ "x$MATCH" == "x" ]; then 
+        if [ "x$E" == "x" ]; then 
             continue
         fi
-        echo ====$i:$query====; 
-        python -c "import sys; map(lambda x: sys.stdout.write(x), sys.argv[1])" "$MATCH"
-        python -c print ""
+        ISSVN=`echo $i |grep -e ".*.svn*"`
+        if [ "x$ISSVN" != "x" ]; then
+            continue
+        fi
+        for query in "$@"; do
+            MATCH=`grep -n -w "$query" $i`
+            if [ "x$MATCH" == "x" ]; then 
+                continue
+            fi
+            echo ====$i:$query====; 
+            python -c "import sys; map(lambda x: sys.stdout.write(x), sys.argv[1])" "$MATCH"
+            python -c print ""
+        done
     done
 done
