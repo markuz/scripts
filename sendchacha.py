@@ -24,6 +24,7 @@
 # @copyright 2011 Marco Antonio Islas Cruz
 # @license   http://www.gnu.org/licenses/gpl.txt
 import time
+import datetime
 import thread
 import getpass
 import smtplib
@@ -53,6 +54,8 @@ parser.add_option('-f', '--file', dest='file', type='string', action='store',
         help='File to be used as email -overwrite headers defined by sender and recipient')
 parser.add_option('-U','--unescape', dest='unescape',action='store_true',default=True, 
         help='Unescape the from/to headers in the case you want to use non-ascii values')
+parser.add_option('-T','--use-smtp-domain', dest='use_smtp_domain', action='store_true',
+        help='Use the smtp domain in the from address, this only works with -f')
 options, args = parser.parse_args()
 
 print "cpucount = ", multiprocessing.cpu_count()
@@ -70,11 +73,20 @@ def send_mail(fromaddr, toaddrs, message, counter, username, password, host,
         msg = f.read()
         f.close()
         message = email.message_from_string(msg)
+        # Update date, some spam filters will not receive email that is 
+        # long in the past or far in the future.
+        now  = datetime.datetime.utcnow()
+        del message['date']
+        message['date'] = time.ctime(time.mktime(now.timetuple()))
+        print "Date>>>>>>>>>>>>>>" ,message['date']
+        msg = message.as_string()
         from_domain = fromaddr.split("@")[-1]
         msgfrom = message['from'].split('@')[0]
         if options.unescape:
             from_domain = from_domain.decode('string_escape')
             msgfrom = msgfrom.decode('string_escape')
+        if options.use_smtp_domain:
+            from_domain = options.username.split("@")[1]
         fromaddr = msgfrom + "@" + from_domain
     else:
         counter.value += 1
