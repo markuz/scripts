@@ -1,5 +1,5 @@
 #!/bin/bash
-# This file is part of the Christine project
+# This file is part of the Markuz Scripts project
 #
 # Copyright (c) 2011 Marco Antonio Islas Cruz
 #
