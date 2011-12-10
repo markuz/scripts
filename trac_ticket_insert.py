@@ -24,8 +24,8 @@
 # @copyright 2011 Markuz Scripts Development Group
 # @license   http://www.gnu.org/licenses/gpl.txt
 
-import trac.ticket.model as model
 import sys
+import trac.ticket.model as model
 from trac.ticket.notification import TicketNotifyEmail
 from trac.env import open_environment
 from optparse import OptionParser
@@ -52,13 +52,7 @@ if None in (options.summary, options.description, options.reporter,
     sys.exit(1)
 
 
-project = options.project
-summary = options.summary
-description = options.description
-reporter = options.reporter
-owner = options.owner
-
-env = open_environment(project)
+env = open_environment(options.project)
 
 t = model.Ticket(env)
 t['status'] = options.status
