@@ -38,7 +38,7 @@ parser.add_option('-u', '--summary',dest='summary',type='string',
 parser.add_option('-d', '--description',dest='description',type='string',
         help='Full description of the ticket')
 parser.add_option('-r', '--reporter',dest='reporter',type='string')
-parser.add_option('-o', '--owner',dest='owner',,type='string')
+parser.add_option('-o', '--owner',dest='owner',type='string')
 parser.add_option('-c', '--component',dest='component',type='string')
 parser.add_option('-p', '--project',dest='project',type='string',
         help='Path to the project')
