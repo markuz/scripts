@@ -56,6 +56,8 @@ parser.add_option('-U','--unescape', dest='unescape',action='store_true',default
         help='Unescape the from/to headers in the case you want to use non-ascii values')
 parser.add_option('-T','--use-smtp-domain', dest='use_smtp_domain', action='store_true',
         help='Use the smtp domain in the from address, this only works with -f')
+parser.add_option('-E','--helo',dest='helo',action='store',type='string',
+        help='Custom HELO/EHLO string')
 options, args = parser.parse_args()
 
 print "cpucount = ", multiprocessing.cpu_count()
@@ -115,7 +117,10 @@ def send_mail(fromaddr, toaddrs, message, counter, username, password, host,
         c.ehlo()
         c.starttls()
         c.ehlo()
-    c.ehlo(fromaddr.split("@")[-1])
+    if options.helo:
+        c.ehlo(options.helo)
+    else:
+        c.ehlo(fromaddr.split("@")[-1])
     if username and password:
         c.login(username,password)
     c.sendmail(fromaddr,toaddrs,msg)
