@@ -48,8 +48,12 @@ parser.add_option('-c','--count',dest='count',action='store',type='string')
 parser.add_option('-S','--ssl',dest='ssl',action='store_true')
 parser.add_option('-d','--debug',dest='debug',type='int', action='store')
 parser.add_option('-m','--message',dest='message',type='string', action='store')
+parser.add_option('','--subject',dest='subject',type='string', action='store',
+        help='Custom subject for email')
 parser.add_option('-M','--multiprocessing',dest='multiprocessing',
         action='store_true')
+parser.add_option('-C', '--content_file', dest='content_file', type='string', action='store',
+        help='File to be read as content, it should be simple text')
 parser.add_option('-f', '--file', dest='file', type='string', action='store',
         help='File to be used as email -overwrite headers defined by sender and recipient')
 parser.add_option('-U','--unescape', dest='unescape',action='store_true',default=True, 
@@ -93,7 +97,10 @@ def send_mail(fromaddr, toaddrs, message, counter, username, password, host,
     else:
         counter.value += 1
         msgRoot = MIMEMultipart('related')
-        msgRoot['Subject'] = "%d - %s"%(counter.value, toaddrs)
+        if options.subject:
+            msgRoot['Subject'] = options.subject
+        else:
+            msgRoot['Subject'] = "%d - %s"%(counter.value, toaddrs)
         msgRoot['From'] = fromaddr
         msgRoot['Reply-To'] = fromaddr
         msgRoot['Sender'] = fromaddr
@@ -101,6 +108,10 @@ def send_mail(fromaddr, toaddrs, message, counter, username, password, host,
         msgRoot.preamble = 'This is a multi-part message in MIME format.'
         if options.message:
             message = options.message
+        if options.content_file:
+            f = open(options.content_file)
+            message = f.read()
+            f.close()
         msgText = MIMEText(message, 'html')
         msgAlternative = MIMEMultipart('alternative')
         msgRoot.attach(msgAlternative)
