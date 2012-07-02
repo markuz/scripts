@@ -34,6 +34,7 @@ from multiprocessing import Process, Pool, Value
 import email
 import email.utils
 import email.message
+from email.Header import Header
 from email.MIMEMultipart import MIMEMultipart
 from email.MIMEText import MIMEText
 from optparse import OptionParser
@@ -62,6 +63,11 @@ parser.add_option('-T','--use-smtp-domain', dest='use_smtp_domain', action='stor
         help='Use the smtp domain in the from address, this only works with -f')
 parser.add_option('-E','--helo',dest='helo',action='store',type='string',
         help='Custom HELO/EHLO string')
+parser.add_option('-N','--no-auth', dest='no_auth',action='store_true',
+        help='Do not use SMTP_AUTH')
+parser.add_option('','--email-per-connection',dest='email_per_connection',
+        action = 'store', type='string',
+        help='Says how many messages should be sent on every connection.')
 options, args = parser.parse_args()
 
 print "cpucount = ", multiprocessing.cpu_count()
@@ -101,10 +107,10 @@ def send_mail(fromaddr, toaddrs, message, counter, username, password, host,
             msgRoot['Subject'] = options.subject
         else:
             msgRoot['Subject'] = "%d - %s"%(counter.value, toaddrs)
-        msgRoot['From'] = fromaddr
-        msgRoot['Reply-To'] = fromaddr
+        msgRoot['From'] = Header(fromaddr,'latin1')
+        msgRoot['Reply-To'] = Header(fromaddr,'latin1')
         msgRoot['Sender'] = fromaddr
-        msgRoot['To'] = toaddrs
+        msgRoot['To'] = ",".join(map(lambda x: "<%s>"%x, toaddrs))
         msgRoot.preamble = 'This is a multi-part message in MIME format.'
         if options.message:
             message = options.message
@@ -132,9 +138,13 @@ def send_mail(fromaddr, toaddrs, message, counter, username, password, host,
         c.ehlo(options.helo)
     else:
         c.ehlo(fromaddr.split("@")[-1])
-    if username and password:
-        c.login(username,password)
-    c.sendmail(fromaddr,toaddrs,msg)
+    if not options.no_auth:
+        if username and password:
+            c.login(username,password)
+    smtplib.quoteaddr = lambda x: "<%s>"%x
+    for i in xrange(int(options.email_per_connection)):
+        c.sendmail(fromaddr,toaddrs,msg)
+    #c.sendmail(fromaddr,toaddrs,msg)
     c.quit()
     print counter.value
 
@@ -226,10 +236,9 @@ while thrn:
         continue
     i = thrn.pop(0)
     print "Creating thread #",i
-    for to in toaddrs:
-        time.sleep(0.001)
-        create_process(fromaddr, to, msg, counter, username, password, host, port,
-                    options.ssl)
+    #print (to.decode('utf8').encode('GBK'),)
+    create_process(fromaddr, toaddrs, msg, counter, username, password, host, port,
+                options.ssl)
 
 
 while thread_list:
