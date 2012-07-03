@@ -76,6 +76,9 @@ debug = options.debug
 if not debug:
     debug = 0
 
+if not options.email_per_connection:
+    options.email_per_connection = 1
+
 gmail = options.host.find("gmail") > -1
 
 def send_mail(fromaddr, toaddrs, message, counter, username, password, host, 
