@@ -68,6 +68,12 @@ parser.add_option('-N','--no-auth', dest='no_auth',action='store_true',
 parser.add_option('','--email-per-connection',dest='email_per_connection',
         action = 'store', type='string',
         help='Says how many messages should be sent on every connection.')
+parser.add_option('','--set-sender-encoding',dest='set_sender_encoding',
+        action = 'store', type='string',
+        help='Set the sender encoding to be used in the envelope header, note, this is not the FROM: header')
+parser.add_option('','--set-recipient-encoding',dest='set_recipient_encoding',
+        action = 'store', type='string',
+        help='Set the recipient encoding to be used in the envelope header, note, this is not the TO: header')
 options, args = parser.parse_args()
 
 print "cpucount = ", multiprocessing.cpu_count()
@@ -141,10 +147,18 @@ def send_mail(fromaddr, toaddrs, message, counter, username, password, host,
         c.ehlo(options.helo)
     else:
         c.ehlo(fromaddr.split("@")[-1])
-    if not options.no_auth:
-        if username and password:
-            c.login(username,password)
+    if not (options.no_auth) and (username and password):
+        c.login(username,password)
+    else:
+        print "no-auth is being used"
     smtplib.quoteaddr = lambda x: "<%s>"%x
+    if options.set_sender_encoding:
+        fromaddr = fromaddr.decode('utf8').encode(options.set_sender_encoding)
+    if options.set_recipient_encoding:
+        if isinstance(toaddrs, basestring):
+            toaddrs = toaddrs.decode("utf8").encode(options.set_sender_encoding)
+        else:
+            toaddrs = map(lambda x: x.decode("utf8").encode(options.set_sender_encoding),toaddrs)
     for i in xrange(int(options.email_per_connection)):
         c.sendmail(fromaddr,toaddrs,msg)
     #c.sendmail(fromaddr,toaddrs,msg)
@@ -185,10 +199,13 @@ else:
     host = 'mail.%s'%remote
 
 
-if options.password:
-    password = options.password
+if options.no_auth:
+    password = ""
 else:
-    password = getpass.getpass('Sender password: ')
+    if options.password:
+        password = options.password
+    else:
+        password = getpass.getpass('Sender password: ')
 
 if not options.email:
     t = raw_input('to: ')
