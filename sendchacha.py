@@ -74,6 +74,14 @@ parser.add_option('','--set-sender-encoding',dest='set_sender_encoding',
 parser.add_option('','--set-recipient-encoding',dest='set_recipient_encoding',
         action = 'store', type='string',
         help='Set the recipient encoding to be used in the envelope header, note, this is not the TO: header')
+parser.add_option('','--use-sendmail', dest='use_sendmail',action='store_true',
+        help='Use the smtplib.SMTP[_SSL].sendmail method')
+parser.add_option("","--set-helo-encoding", dest="helo_encoding",
+        action="store",type="string",
+        help="Set the encoding to be used by the HELO/EHLO string")
+parser.add_option("","--set-subject-encoding", dest="subject_encoding",
+        action="store",type="string",
+        help="Set the encoding to be used by the string")
 options, args = parser.parse_args()
 
 print "cpucount = ", multiprocessing.cpu_count()
@@ -89,6 +97,7 @@ gmail = options.host.find("gmail") > -1
 
 def send_mail(fromaddr, toaddrs, message, counter, username, password, host, 
         port, usessl):
+    print "args: %s"%repr((fromaddr, toaddrs))
     if options.file:
         f = open(options.file)
         msg = f.read()
@@ -113,9 +122,12 @@ def send_mail(fromaddr, toaddrs, message, counter, username, password, host,
         counter.value += 1
         msgRoot = MIMEMultipart('related')
         if options.subject:
-            msgRoot['Subject'] = options.subject
+            subject = options.subject
         else:
-            msgRoot['Subject'] = "%d - %s"%(counter.value, toaddrs)
+            subject  = "%d - %s"%(counter.value, toaddrs)
+        if options.subject_encoding:
+            subject = subject.decode("utf8").encode(options.subject_encoding)
+        msgRoot['Subject'] = subject
         msgRoot['From'] = Header(fromaddr,'latin1')
         msgRoot['Reply-To'] = Header(fromaddr,'latin1')
         msgRoot['Sender'] = fromaddr
@@ -144,9 +156,12 @@ def send_mail(fromaddr, toaddrs, message, counter, username, password, host,
         c.starttls()
         c.ehlo()
     if options.helo:
-        c.ehlo(options.helo)
+        ehlo = options.helo
     else:
-        c.ehlo(fromaddr.split("@")[-1])
+        ehlo = fromaddr.split("@")[-1]
+    if options.helo_encoding:
+        ehlo = ehlo.decode("utf8").encode(options.helo_encoding)
+    c.ehlo(ehlo)
     if not (options.no_auth) and (username and password):
         c.login(username,password)
     else:
@@ -156,12 +171,21 @@ def send_mail(fromaddr, toaddrs, message, counter, username, password, host,
         fromaddr = fromaddr.decode('utf8').encode(options.set_sender_encoding)
     if options.set_recipient_encoding:
         if isinstance(toaddrs, basestring):
-            toaddrs = toaddrs.decode("utf8").encode(options.set_sender_encoding)
+            toaddrs = toaddrs.decode("utf8").encode(options.set_recipient_encoding)
         else:
-            toaddrs = map(lambda x: x.decode("utf8").encode(options.set_sender_encoding),toaddrs)
+            toaddrs = map(lambda x: x.decode("utf8").encode(options.set_recipient_encoding),toaddrs)
     for i in xrange(int(options.email_per_connection)):
-        c.sendmail(fromaddr,toaddrs,msg)
-    #c.sendmail(fromaddr,toaddrs,msg)
+        if options.use_sendmail:
+            c.sendmail(fromaddr,toaddrs,msg)
+        else:
+            print "fromaddr: %s"%repr(fromaddr)
+            c.mail(fromaddr)
+            if isinstance(toaddrs, basestring):
+                toaddrs = [toaddrs]
+            print "toaddrs: %s"%toaddrs
+            for i in toaddrs:
+                c.rcpt(i)
+            c.data(msg)
     c.quit()
     print counter.value
 
