@@ -82,6 +82,8 @@ parser.add_option("","--set-helo-encoding", dest="helo_encoding",
 parser.add_option("","--set-subject-encoding", dest="subject_encoding",
         action="store",type="string",
         help="Set the encoding to be used by the string")
+parser.add_option("","--one-message-per-recipient", dest="one_message_per_recipient", action="store_true",
+        help="Useful when we want to pass thru all SMTP steps before sending a message to another recipient")
 options, args = parser.parse_args()
 
 print "cpucount = ", multiprocessing.cpu_count()
@@ -176,17 +178,39 @@ def send_mail(fromaddr, toaddrs, message, counter, username, password, host,
             toaddrs = map(lambda x: x.decode("utf8").encode(options.set_recipient_encoding),toaddrs)
     for i in xrange(int(options.email_per_connection)):
         if options.use_sendmail:
-            c.sendmail(fromaddr,toaddrs,msg)
+            if options.one_message_per_recipient:
+                for recipient in toaddrs:
+                    try:
+                        c.sendmail(fromaddr, recipient, msg)
+                    except Exception, e:
+                        print e
+            else:
+                try:
+                    c.sendmail(fromaddr,toaddrs,msg)
+                except Exception, e:
+                    print e
         else:
-            print "fromaddr: %s"%repr(fromaddr)
-            c.mail(fromaddr)
-            if isinstance(toaddrs, basestring):
-                toaddrs = [toaddrs]
-            print "toaddrs: %s"%toaddrs
-            for i in toaddrs:
-                c.rcpt(i)
-            c.data(msg)
-    c.quit()
+            def csend(fromr, tor, msrgr):
+                try:
+                    print "fromaddr: %s"%repr(fromaddr)
+                    c.mail(fromr)
+                    if isinstance(tor, basestring):
+                        toaddrs = [tor]
+                    print "toaddrs: %s"%toaddrs
+                    for i in toaddrs:
+                        c.rcpt(i)
+                    c.data(msg)
+                except Exception, e:
+                    print e
+            if options.one_message_per_recipient:
+                for recipient in toaddrs:
+                    csend(fromaddr, recipient, msg)
+            else:
+                csend(fromaddr, toaddrs, msg)
+    try:
+        c.quit()
+    except: 
+        pass
     print counter.value
 
 def create_process(fromaddr, toaddrs, msg, counter, username, password, host, 
