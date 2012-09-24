@@ -100,6 +100,7 @@ gmail = options.host.find("gmail") > -1
 def send_mail(fromaddr, toaddrs, message, counter, username, password, host, 
         port, usessl):
     print "args: %s"%repr((fromaddr, toaddrs))
+    now  = datetime.datetime.utcnow()
     if options.file:
         f = open(options.file)
         msg = f.read()
@@ -107,7 +108,6 @@ def send_mail(fromaddr, toaddrs, message, counter, username, password, host,
         message = email.message_from_string(msg)
         # Update date, some spam filters will not receive email that is 
         # long in the past or far in the future.
-        now  = datetime.datetime.utcnow()
         del message['date']
         message['date'] = time.ctime(time.mktime(now.timetuple()))
         print "Date>>>>>>>>>>>>>>" ,message['date']
@@ -134,6 +134,7 @@ def send_mail(fromaddr, toaddrs, message, counter, username, password, host,
         msgRoot['Reply-To'] = Header(fromaddr,'latin1')
         msgRoot['Sender'] = fromaddr
         msgRoot['To'] = ",".join(map(lambda x: "<%s>"%x, toaddrs))
+        msgRoot['date'] = time.ctime(time.mktime(now.timetuple()))
         msgRoot.preamble = 'This is a multi-part message in MIME format.'
         if options.message:
             message = options.message
@@ -195,13 +196,20 @@ def send_mail(fromaddr, toaddrs, message, counter, username, password, host,
                     print "fromaddr: %s"%repr(fromaddr)
                     c.mail(fromr)
                     if isinstance(tor, basestring):
-                        toaddrs = [tor]
-                    print "toaddrs: %s"%toaddrs
-                    for i in toaddrs:
-                        c.rcpt(i)
+                        tor = [tor]
+                    print "toaddrs: %s"%tor
+                    for i in tor:
+                        result = c.rcpt(i)
+                        if result[0] != 250:
+                            print " MSG ".center(80,"=")
+                            print "reply: ", "".join(result[1:])
+                            print "".center(80,"=")
+                            return
                     c.data(msg)
                 except Exception, e:
+                    print " ERROR ".center(80,"=")
                     print e
+                    print "".center(80,"=")
             if options.one_message_per_recipient:
                 for recipient in toaddrs:
                     csend(fromaddr, recipient, msg)
