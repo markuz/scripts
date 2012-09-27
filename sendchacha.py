@@ -84,6 +84,12 @@ parser.add_option("","--set-subject-encoding", dest="subject_encoding",
         help="Set the encoding to be used by the string")
 parser.add_option("","--one-message-per-recipient", dest="one_message_per_recipient", action="store_true",
         help="Useful when we want to pass thru all SMTP steps before sending a message to another recipient")
+parser.add_option("","--python-values", dest="python_values", action="store_true",
+        default=False,
+        help=("When set, the values will be interpreted as python values, "
+            "for example 'user@example.com' is a string, "
+            "but u'user@example.com is unicode. "
+            "This allows you to use nonprintable characters"))
 options, args = parser.parse_args()
 
 print "cpucount = ", multiprocessing.cpu_count()
@@ -96,6 +102,19 @@ if not options.email_per_connection:
     options.email_per_connection = 1
 
 gmail = options.host.find("gmail") > -1
+
+
+if options.python_values:
+    import codecs
+    for key in [k for k in dir (options) if not k.startswith("_")]:
+        value = options.__dict__.get(key, None)
+        if not value:
+            continue
+        if not isinstance(value,basestring):
+            continue
+        options.__dict__[key] = codecs.escape_decode(value)[0]
+
+
 
 def send_mail(fromaddr, toaddrs, message, counter, username, password, host, 
         port, usessl):
