@@ -141,30 +141,26 @@ def send_mail(fromaddr, toaddrs, message, counter, username, password, host,
         fromaddr = msgfrom + "@" + from_domain
     else:
         counter.value += 1
-        msgRoot = MIMEMultipart('related')
+        msgRoot = email.message.Message()
         if options.subject:
             subject = options.subject
         else:
             subject  = "%d - %s"%(counter.value, toaddrs)
         if options.subject_encoding:
             subject = subject.decode("utf8").encode(options.subject_encoding)
-        msgRoot['Subject'] = subject
-        msgRoot['From'] = Header(fromaddr,'latin1')
-        msgRoot['Reply-To'] = Header(fromaddr,'latin1')
-        msgRoot['Sender'] = fromaddr
-        msgRoot['To'] = ",".join(map(lambda x: "<%s>"%x, toaddrs))
-        msgRoot['date'] = time.ctime(time.mktime(now.timetuple()))
-        msgRoot.preamble = 'This is a multi-part message in MIME format.'
+        msgRoot.add_header('From', fromaddr)
+        #msgRoot.add_header('Reply-To', fromaddr)
+        #msgRoot.add_header('Sender', fromaddr)
+        msgRoot.add_header('To', ",".join(map(lambda x: "<%s>"%x, toaddrs)))
+        msgRoot.add_header('Subject', subject)
+        #msgRoot.add_header('date',  time.ctime(time.mktime(now.timetuple())))
         if options.message:
             message = options.message
         if options.content_file:
             f = open(options.content_file)
             message = f.read()
             f.close()
-        msgText = MIMEText(message, 'html')
-        msgAlternative = MIMEMultipart('alternative')
-        msgRoot.attach(msgAlternative)
-        msgAlternative.attach(msgText)
+        msgRoot.set_payload(message)
         msg = msgRoot.as_string()
     if usessl:
         c = smtplib.SMTP_SSL()
@@ -195,7 +191,8 @@ def send_mail(fromaddr, toaddrs, message, counter, username, password, host,
         if isinstance(toaddrs, basestring):
             toaddrs = toaddrs.decode("utf8").encode(options.set_recipient_encoding)
         else:
-            toaddrs = map(lambda x: x.decode("utf8").encode(options.set_recipient_encoding),toaddrs)
+            encoding = options.set_recipient_encoding
+            toaddrs = [k.decode("utf8").encode(encoding) for k in toaddrs]
     for i in xrange(int(options.email_per_connection)):
         if options.use_sendmail:
             if options.one_message_per_recipient:
