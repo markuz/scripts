@@ -68,5 +68,5 @@ try:
     tn = TicketNotifyEmail(env)
     tn.notify(t, newticket=True)
 except Exception, e:
-    sys.stderr.writer("Failure sending notification on creation of ticket #%s: %s" % (t.id, e))
+    sys.stderr.write("Failure sending notification on creation of ticket #%s: %s" % (t.id, e))
     sys.stderr.flush()
