@@ -90,6 +90,13 @@ parser.add_option("","--python-values", dest="python_values", action="store_true
             "for example 'user@example.com' is a string, "
             "but u'user@example.com is unicode. "
             "This allows you to use nonprintable characters"))
+parser.add_option("","--set-header", dest="set_header",
+        action="append", 
+        help=("Add the header to the headers in the mail, "
+            "header must be a couple of KEY=VALUE items, "
+            "this argument may be set multiple times to add "
+            "more that one header"),
+        default = [])
 options, args = parser.parse_args()
 
 print "cpucount = ", multiprocessing.cpu_count()
@@ -154,6 +161,9 @@ def send_mail(fromaddr, toaddrs, message, counter, username, password, host,
         msgRoot.add_header('To', ",".join(map(lambda x: "<%s>"%x, toaddrs)))
         msgRoot.add_header('Subject', subject)
         #msgRoot.add_header('date',  time.ctime(time.mktime(now.timetuple())))
+        for raw_header in options.set_header:
+            key, value = raw_header.split("=")
+            msgRoot[key] = value
         if options.message:
             message = options.message
         if options.content_file:
