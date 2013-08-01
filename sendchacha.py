@@ -23,6 +23,7 @@
 # @author    Marco Antonio Islas Cruz <markuz@islascruz.org>
 # @copyright 2011 Marco Antonio Islas Cruz
 # @license   http://www.gnu.org/licenses/gpl.txt
+import sys
 import time
 import datetime
 import thread
@@ -49,8 +50,10 @@ parser.add_option('-c','--count',dest='count',action='store',type='string')
 parser.add_option('-S','--ssl',dest='ssl',action='store_true')
 parser.add_option('-d','--debug',dest='debug',type='int', action='store')
 parser.add_option('-m','--message',dest='message',type='string', action='store')
+parser.add_option('','--cc', dest="cc", type='string',action="store", default=None)
+parser.add_option('','--bcc', dest="bcc", type='string',action="store", default=None)
 parser.add_option('','--subject',dest='subject',type='string', action='store',
-        help='Custom subject for email')
+        help='Custom subject for email', default=None)
 parser.add_option('-M','--multiprocessing',dest='multiprocessing',
         action='store_true')
 parser.add_option('-C', '--content_file', dest='content_file', type='string', action='store',
@@ -99,17 +102,33 @@ parser.add_option("","--set-header", dest="set_header",
         default = [])
 options, args = parser.parse_args()
 
-print "cpucount = ", multiprocessing.cpu_count()
-
-debug = options.debug
-if not debug:
-    debug = 0
 
 if not options.email_per_connection:
     options.email_per_connection = 1
 
 gmail = options.host.find("gmail") > -1
 
+def debug(msg, *args):
+    if not options.debug: 
+        return
+    if args:
+        if not isinstance(msg, basestring):
+            print msg
+            return
+        print msg % args
+        return
+    print msg
+
+def error(msg, *args):
+    if args:
+        if not isinstance(msg, basestring):
+            print msg
+            return
+        print msg % args
+        return
+    print msg
+
+debug("cpucount = %s", multiprocessing.cpu_count())
 
 if options.python_values:
     import codecs
@@ -125,7 +144,6 @@ if options.python_values:
 
 def send_mail(fromaddr, toaddrs, message, counter, username, password, host, 
         port, usessl):
-    print "args: %s"%repr((fromaddr, toaddrs))
     now  = datetime.datetime.utcnow()
     if options.file:
         f = open(options.file)
@@ -136,7 +154,6 @@ def send_mail(fromaddr, toaddrs, message, counter, username, password, host,
         # long in the past or far in the future.
         del message['date']
         message['date'] = time.ctime(time.mktime(now.timetuple()))
-        print "Date>>>>>>>>>>>>>>" ,message['date']
         msg = message.as_string()
         from_domain = fromaddr.split("@")[-1]
         msgfrom = message['from'].split('@')[0]
@@ -149,7 +166,7 @@ def send_mail(fromaddr, toaddrs, message, counter, username, password, host,
     else:
         counter.value += 1
         msgRoot = email.message.Message()
-        if options.subject:
+        if options.subject != None:
             subject = options.subject
         else:
             subject  = "%d - %s"%(counter.value, toaddrs)
@@ -160,6 +177,10 @@ def send_mail(fromaddr, toaddrs, message, counter, username, password, host,
         #msgRoot.add_header('Sender', fromaddr)
         msgRoot.add_header('To', ",".join(map(lambda x: "<%s>"%x, toaddrs)))
         msgRoot.add_header('Subject', subject)
+        if options.cc:
+            msgRoot.add_header('cc', options.cc)
+        if options.bcc:
+            msgRoot.add_header('bcc', options.bcc)
         #msgRoot.add_header('date',  time.ctime(time.mktime(now.timetuple())))
         for raw_header in options.set_header:
             key, value = raw_header.split("=")
@@ -177,7 +198,7 @@ def send_mail(fromaddr, toaddrs, message, counter, username, password, host,
     else:
         c = smtplib.SMTP()
         
-    c.set_debuglevel(debug)
+    c.set_debuglevel(options.debug)
     c.connect(host,port)
     if gmail:
         c.ehlo()
@@ -193,7 +214,8 @@ def send_mail(fromaddr, toaddrs, message, counter, username, password, host,
     if not (options.no_auth) and (username and password):
         c.login(username,password)
     else:
-        print "no-auth is being used"
+        if options.debug:
+            debug("no-auth is being used")
     smtplib.quoteaddr = lambda x: "<%s>"%x
     if options.set_sender_encoding:
         fromaddr = fromaddr.decode('utf8').encode(options.set_sender_encoding)
@@ -208,34 +230,34 @@ def send_mail(fromaddr, toaddrs, message, counter, username, password, host,
             if options.one_message_per_recipient:
                 for recipient in toaddrs:
                     try:
-                        c.sendmail(fromaddr, recipient, msg)
+                        print c.sendmail(fromaddr, recipient, msg)
                     except Exception, e:
-                        print e
+                        error(e)
             else:
                 try:
                     c.sendmail(fromaddr,toaddrs,msg)
                 except Exception, e:
-                    print e
+                    error(e)
         else:
             def csend(fromr, tor, msrgr):
                 try:
-                    print "fromaddr: %s"%repr(fromaddr)
+                    debug("fromaddr: %s",repr(fromaddr))
                     c.mail(fromr)
                     if isinstance(tor, basestring):
                         tor = [tor]
-                    print "toaddrs: %s"%tor
+                    debug("toaddrs: %s",tor)
                     for i in tor:
                         result = c.rcpt(i)
                         if result[0] != 250:
-                            print " MSG ".center(80,"=")
+                            debug(" MSG ".center(80,"="))
                             print "reply: ", "".join(result[1:])
-                            print "".center(80,"=")
+                            debug("".center(80,"="))
                             return
-                    c.data(msg)
+                    print c.data(msg)
                 except Exception, e:
-                    print " ERROR ".center(80,"=")
-                    print e
-                    print "".center(80,"=")
+                    error(" ERROR ".center(80,"="))
+                    error(e)
+                    error( "".center(80,"="))
             if options.one_message_per_recipient:
                 for recipient in toaddrs:
                     csend(fromaddr, recipient, msg)
@@ -245,7 +267,7 @@ def send_mail(fromaddr, toaddrs, message, counter, username, password, host,
         c.quit()
     except: 
         pass
-    print counter.value
+    debug( counter.value)
 
 def create_process(fromaddr, toaddrs, msg, counter, username, password, host, 
         port, usessl):
@@ -329,7 +351,7 @@ while thrn:
         if not ntime:
             ntime = time.time() + 30
         diff = ntime - time.time()
-        print diff
+        debug(diff)
         if diff > 0:
             time.sleep(1)
         else:
@@ -337,8 +359,7 @@ while thrn:
             ntime = None
         continue
     i = thrn.pop(0)
-    print "Creating thread #",i
-    #print (to.decode('utf8').encode('GBK'),)
+    debug("Creating thread #%s",i)
     create_process(fromaddr, toaddrs, msg, counter, username, password, host, port,
                 options.ssl)
 
