@@ -76,33 +76,43 @@ def move_folder_messages(d, oldhost, newhost):
         typ, data = oldhost.fetch(num, "(RFC822)")
         text = data[0][1]
         msg = email.message_from_string(text)
-        print "moviendo el mensaje %s"%msg["subject"]
+        subject = msg["subject"]
+        try:
+            result, data = newhost.uid('search',None, 
+                    '(HEADER Subject "%r")'%msg["subject"])
+        except:
+            data = None
+        if data:
+            print ("Omitiendo el mensaje %s, ya se encuentra en el mailbox"
+                    " destino" )%subject
+            continue
+        print "moviendo el mensaje %s"%subject
         newhost.append(d, None, None, msg.as_string())
 
 
 
-for user, passwds in IMAP_USERS.iteritems():
-    #Conectar al host anterior
-    print "Connecting to %s:%d"%(OLDHOST, OLDPORT)
-    oldhost = imaplib.IMAP4(OLDHOST, OLDPORT)
-    print "Auth: %s,%s"%(options.email, options.oldpassword)
-    oldhost.login(options.email, options.oldpassword)
+#Conectar al host anterior
+print "Connecting to %s:%d"%(OLDHOST, OLDPORT)
+oldhost = imaplib.IMAP4(OLDHOST, OLDPORT)
+print "Auth: %s,%s"%(options.email, options.oldpassword)
+oldhost.login(options.email, options.oldpassword)
 
-    #Conectar al nuevo host
-    newhost = imaplib.IMAP4(NEWHOST, NEWPORT)
-    newhost.login(options.newemail, options.newpassword)
+#Conectar al nuevo host
+newhost = imaplib.IMAP4(NEWHOST, NEWPORT)
+newhost.login(options.newemail, options.newpassword)
 
-    #Obtener la lista de directorios
-    result, dirs = oldhost.list()
-    print "Directorios encontrados"
-    for d in dirs:
-        print d
-    for d in dirs:
-        directorio = d.rsplit(" ", 1)[1]
-        try:
-            move_folder_messages(directorio, oldhost, newhost)
-        except Exception, e:
-            print "Error, mailbox: %s, error %r"%(directorio, e)
+#Obtener la lista de directorios
+result, dirs = oldhost.list()
+print "Directorios encontrados"
+for d in dirs:
+    print d
+for d in dirs:
+    directorio = d.rsplit(" ", 1)[1]
+    move_folder_messages(directorio, oldhost, newhost)
+####try:
+####    move_folder_messages(directorio, oldhost, newhost)
+####except Exception, e:
+####    print "Error, mailbox: %s, error %r"%(directorio, e)
 
 
 
