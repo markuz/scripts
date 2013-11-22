@@ -67,10 +67,10 @@ def move_folder_messages(d, oldhost, newhost):
     oldhost.select(d)
     #Seleccionar el directorio en el nuevo host.
     try:
-        newhost.select(d)
+        newhost.select("%r"%d)
     except:
-        newhost.create(d)
-        newhost.select(d)
+        newhost.create("%r"%d)
+        newhost.select("%r"%d)
     typ, data = oldhost.search(None, "ALL")
     for c, num in enumerate(data[0].split()):
         typ, data = oldhost.fetch(num, "(RFC822)")
