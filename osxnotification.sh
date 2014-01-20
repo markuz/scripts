@@ -11,3 +11,5 @@ fi
 echo "$CMD"
 
 osascript -e "$CMD"
+
+afplay /System/Library/Sounds/Glass.aiff
