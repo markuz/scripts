@@ -30,7 +30,7 @@ from trac.ticket.notification import TicketNotifyEmail
 from trac.env import open_environment
 from optparse import OptionParser
 
-parser = OptionParser(version='1.0')
+parser = OptionParser(version='1.1')
 parser.add_option('-s', '--status',dest='status',default='new',type='string')
 parser.add_option('-t', '--type',dest='type',default='task',type='string')
 parser.add_option('-u', '--summary',dest='summary',type='string',
@@ -42,6 +42,12 @@ parser.add_option('-o', '--owner',dest='owner',type='string')
 parser.add_option('-c', '--component',dest='component',type='string')
 parser.add_option('-p', '--project',dest='project',type='string',
         help='Path to the project')
+parser.add_option('-c', '--cc', dest="cc",
+        type="string",
+        help="Cc. field in ticket creation")
+parser.add_option('','--priority',dest='priority',type='string',
+        help='ticket priority',
+        default='normal')
 options, args = parser.parse_args()
 
 if None in (options.summary, options.description, options.reporter,
@@ -62,6 +68,10 @@ t['reporter'] = options.reporter
 t['owner'] = options.owner
 t['type'] = options.type
 t['component'] = options.component
+t['component'] = options.component
+if options.cc:
+    t['cc'] = options.cc
+t['priority'] = options.priority
 t.insert()
 
 try:
