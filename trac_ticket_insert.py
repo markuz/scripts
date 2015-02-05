@@ -42,7 +42,7 @@ parser.add_option('-o', '--owner',dest='owner',type='string')
 parser.add_option('-c', '--component',dest='component',type='string')
 parser.add_option('-p', '--project',dest='project',type='string',
         help='Path to the project')
-parser.add_option('-c', '--cc', dest="cc",
+parser.add_option('', '--cc', dest="cc",
         type="string",
         help="Cc. field in ticket creation")
 parser.add_option('','--priority',dest='priority',type='string',
