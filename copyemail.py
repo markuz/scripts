@@ -52,6 +52,9 @@ parser.add_option("","--old-password", dest="oldpassword",action="store",
 parser.add_option("","--new-password", dest="newpassword",action="store",
         type="string",
         help="New password")
+parser.add_option("","--prefix", dest="prefix",action="store",
+        type="string",
+        help="mailbox prefix")
 options, args = parser.parse_args()
 
 if not options.newemail:
@@ -62,31 +65,39 @@ OLDPORT= int(options.oldhost.split(":")[1])
 NEWHOST=options.newhost.split(":")[0]
 NEWPORT=int(options.newhost.split(":")[1])
 
+
 def move_folder_messages(d, oldhost, newhost):
     print "Entrando al directorio ", d
-    oldhost.select(d)
+    typ, dat = oldhost.select(d)
+    if typ != 'OK':
+        print "Cannot select %r"%d
     #Seleccionar el directorio en el nuevo host.
-    try:
-        newhost.select("%r"%d)
-    except:
-        newhost.create("%r"%d)
-        newhost.select("%r"%d)
+    typ, dat = newhost.select(d)
+    a,b = newhost.list()
+    print typ, dat, d,a,b
+    if typ != "OK":
+        print "Can't select folder: '%r'"%d
+        raise ValueError
     typ, data = oldhost.search(None, "ALL")
     for c, num in enumerate(data[0].split()):
         typ, data = oldhost.fetch(num, "(RFC822)")
         text = data[0][1]
         msg = email.message_from_string(text)
-        subject = msg["subject"]
-        try:
-            result, data = newhost.uid('search',None, 
-                    '(HEADER Subject "%r")'%msg["subject"])
-        except:
-            data = None
-        if data:
-            print ("Omitiendo el mensaje %s, ya se encuentra en el mailbox"
-                    " destino" )%subject
-            continue
-        print "moviendo el mensaje %s"%subject
+        subject = msg["Subject"]
+        message_id = msg["Message-ID"]
+########try:
+########    searchpattern = '(HEADER Message-ID "%s")'%message_id
+########    result, data = newhost.uid('search',None, 
+########            searchpattern)
+########except Exception, e:
+########    print "No data: %s"%e
+########    data = None
+########print result, data
+########if data and data[0]:
+########    print ("Omitiendo el mensaje %s, ya se encuentra en el mailbox"
+########            " destino (%r)" )%(subject, d)
+########    continue
+        print "moviendo el mensaje %s/%s"%(d,subject)
         newhost.append(d, None, None, msg.as_string())
 
 
@@ -104,10 +115,14 @@ newhost.login(options.newemail, options.newpassword)
 #Obtener la lista de directorios
 result, dirs = oldhost.list()
 print "Directorios encontrados"
-for d in dirs:
-    print d
-for d in dirs:
-    directorio = d.rsplit(" ", 1)[1]
+
+dirs = map(lambda x: x.rsplit('"."', 1)[1].strip(), dirs)
+newhdirs = map(lambda x: x.rsplit('"."', 1)[1].strip(), newhost.list()[1])
+for directorio in dirs:
+    if directorio not in newhdirs:
+        print newhost.create(directorio)
+
+for directorio in dirs:
     move_folder_messages(directorio, oldhost, newhost)
 ####try:
 ####    move_folder_messages(directorio, oldhost, newhost)
