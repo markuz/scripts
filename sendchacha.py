@@ -23,21 +23,19 @@
 # @author    Marco Antonio Islas Cruz <markuz@islascruz.org>
 # @copyright 2011 Marco Antonio Islas Cruz
 # @license   http://www.gnu.org/licenses/gpl.txt
-import sys
+import os
 import time
 import datetime
-import thread
 import getpass
 import smtplib
-import threading
 import multiprocessing
-from multiprocessing import Process, Pool, Value
+from multiprocessing import Process, Value
 import email
 import email.utils
 import email.message
-from email.Header import Header
-from email.MIMEMultipart import MIMEMultipart
-from email.MIMEText import MIMEText
+#from email.Header import Header
+from email import Encoders
+from email.MIMEBase import MIMEBase
 from optparse import OptionParser
 
 parser = OptionParser()
@@ -100,6 +98,10 @@ parser.add_option("","--set-header", dest="set_header",
             "this argument may be set multiple times to add "
             "more that one header"),
         default = [])
+parser.add_option("","--attachment", dest="attachment",
+        action="append",
+        help=("Add the file to the message, you can define several "
+            "files to be attached. with several --attach options"))
 options, args = parser.parse_args()
 
 
@@ -149,57 +151,57 @@ def send_mail(fromaddr, toaddrs, message, counter, username, password, host,
         msg = None
         with open(options.file) as f:
             msg = f.read()
-        if not msg:
-            return
-        message = email.message_from_string(msg)
-        # Update date, some spam filters will not receive email that is 
-        # long in the past or far in the future.
-        del message['date']
-        message['date'] = time.ctime(time.mktime(now.timetuple()))
-########from_domain = fromaddr.split("@")[-1]
-########msgfrom = message['from'].split('@')[0]
-########if options.unescape:
-########    from_domain = from_domain.decode('string_escape')
-########    msgfrom = msgfrom.decode('string_escape')
-########if options.use_smtp_domain:
-########    from_domain = options.username.split("@")[1]
-########fromaddr = msgfrom + "@" + from_domain
-        msg = message.as_string()
+            msgRoot = email.message_from_string(msg)
+            # Update date, some spam filters will not receive email that is 
+            # long in the past or far in the future.
+            del msgRoot['date']
+            msgRoot['date'] = time.ctime(time.mktime(now.timetuple()))
     else:
         counter.value += 1
         msgRoot = email.message.Message()
-        if options.subject != None:
-            subject = options.subject
-        else:
-            subject  = "%d - %s"%(counter.value, toaddrs)
-        if options.subject_encoding:
-            subject = subject.decode("utf8").encode(options.subject_encoding)
-        msgRoot.add_header('From', fromaddr)
-        #msgRoot.add_header('Reply-To', fromaddr)
-        #msgRoot.add_header('Sender', fromaddr)
-        msgRoot.add_header('To', ",".join(map(lambda x: "<%s>"%x, toaddrs)))
-        msgRoot.add_header('Subject', subject)
-        if options.cc:
-            msgRoot.add_header('cc', options.cc)
-        if options.bcc:
-            msgRoot.add_header('bcc', options.bcc)
-        #msgRoot.add_header('date',  time.ctime(time.mktime(now.timetuple())))
-        for raw_header in options.set_header:
-            key, value = raw_header.split("=")
-            msgRoot[key] = value
-        if options.message:
-            message = options.message
-        if options.content_file:
-            f = open(options.content_file)
-            message = f.read()
-            f.close()
-        msgRoot.set_payload(message)
-        msg = msgRoot.as_string()
+
+    if options.subject != None:
+        subject = options.subject
+    else:
+        subject  = "%d - %s"%(counter.value, toaddrs)
+    if options.subject_encoding:
+        subject = subject.decode("utf8").encode(options.subject_encoding)
+    msgRoot.add_header('From', fromaddr)
+    #msgRoot.add_header('Reply-To', fromaddr)
+    #msgRoot.add_header('Sender', fromaddr)
+    msgRoot.add_header('To', ",".join(map(lambda x: "<%s>"%x, toaddrs)))
+    msgRoot.add_header('Subject', subject)
+    if options.cc:
+        msgRoot.add_header('cc', options.cc)
+    if options.bcc:
+        msgRoot.add_header('bcc', options.bcc)
+    #msgRoot.add_header('date',  time.ctime(time.mktime(now.timetuple())))
+    for raw_header in options.set_header:
+        key, value = raw_header.split("=")
+        msgRoot[key] = value
+    if options.message:
+        message = options.message
+    if options.content_file:
+        f = open(options.content_file)
+        message = f.read()
+        f.close()
+    msgRoot.set_payload(message)
+    for item in options.attachment:
+        try:
+            dat = open(item, "rb").read()
+        except IOError:
+            continue
+        part = MIMEBase("appliation", "octect-stream")
+        part.set_payload(dat)
+        Encoders.encode_base64(part)
+        part.add_header('Content-Disposition', 'attachment; filename="%s"'
+               % os.path.basename(item))
+        msgRoot.attach(part)
+    msg = msgRoot.as_string()
     if usessl:
         c = smtplib.SMTP_SSL()
     else:
         c = smtplib.SMTP()
-        
     c.set_debuglevel(options.debug)
     c.connect(host,port)
     if gmail:
