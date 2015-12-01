@@ -35,6 +35,8 @@ import email.utils
 import email.message
 #from email.Header import Header
 from email import Encoders
+from email.MIMEMultipart import MIMEMultipart
+from email.MIMEText import MIMEText
 from email.MIMEBase import MIMEBase
 from optparse import OptionParser
 
@@ -158,7 +160,8 @@ def send_mail(fromaddr, toaddrs, message, counter, username, password, host,
             msgRoot['date'] = time.ctime(time.mktime(now.timetuple()))
     else:
         counter.value += 1
-        msgRoot = email.message.Message()
+        #msgRoot = email.message.Message()
+        msgRoot = MIMEMultipart()
 
     if options.subject != None:
         subject = options.subject
@@ -185,7 +188,7 @@ def send_mail(fromaddr, toaddrs, message, counter, username, password, host,
         f = open(options.content_file)
         message = f.read()
         f.close()
-    msgRoot.set_payload(message)
+    msgRoot.attach(MIMEText(message))
     for item in options.attachment:
         try:
             dat = open(item, "rb").read()
