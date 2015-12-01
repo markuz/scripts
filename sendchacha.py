@@ -146,15 +146,16 @@ def send_mail(fromaddr, toaddrs, message, counter, username, password, host,
         port, usessl):
     now  = datetime.datetime.utcnow()
     if options.file:
-        f = open(options.file)
-        msg = f.read()
-        f.close()
+        msg = None
+        with open(options.file) as f:
+            msg = f.read()
+        if not msg:
+            return
         message = email.message_from_string(msg)
         # Update date, some spam filters will not receive email that is 
         # long in the past or far in the future.
         del message['date']
         message['date'] = time.ctime(time.mktime(now.timetuple()))
-        msg = message.as_string()
         from_domain = fromaddr.split("@")[-1]
         msgfrom = message['from'].split('@')[0]
         if options.unescape:
@@ -163,6 +164,7 @@ def send_mail(fromaddr, toaddrs, message, counter, username, password, host,
         if options.use_smtp_domain:
             from_domain = options.username.split("@")[1]
         fromaddr = msgfrom + "@" + from_domain
+        msg = message.as_string()
     else:
         counter.value += 1
         msgRoot = email.message.Message()
