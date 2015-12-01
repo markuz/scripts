@@ -156,14 +156,14 @@ def send_mail(fromaddr, toaddrs, message, counter, username, password, host,
         # long in the past or far in the future.
         del message['date']
         message['date'] = time.ctime(time.mktime(now.timetuple()))
-        from_domain = fromaddr.split("@")[-1]
-        msgfrom = message['from'].split('@')[0]
-        if options.unescape:
-            from_domain = from_domain.decode('string_escape')
-            msgfrom = msgfrom.decode('string_escape')
-        if options.use_smtp_domain:
-            from_domain = options.username.split("@")[1]
-        fromaddr = msgfrom + "@" + from_domain
+########from_domain = fromaddr.split("@")[-1]
+########msgfrom = message['from'].split('@')[0]
+########if options.unescape:
+########    from_domain = from_domain.decode('string_escape')
+########    msgfrom = msgfrom.decode('string_escape')
+########if options.use_smtp_domain:
+########    from_domain = options.username.split("@")[1]
+########fromaddr = msgfrom + "@" + from_domain
         msg = message.as_string()
     else:
         counter.value += 1
