@@ -101,7 +101,7 @@ parser.add_option("","--set-header", dest="set_header",
             "more that one header"),
         default = [])
 parser.add_option("","--attachment", dest="attachment",
-        action="append",
+        action="append", default = [],
         help=("Add the file to the message, you can define several "
             "files to be attached. with several --attach options"))
 options, args = parser.parse_args()
